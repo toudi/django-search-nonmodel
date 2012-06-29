@@ -56,7 +56,7 @@ class Backend(DatabaseBackend):
             esfield = esfield(store = "yes" if field_type.store else "no")
             if field_type.analyze:
                 esfield.index = "analyzed"
-            esfield = esfield.to_json()
+            esfield = esfield.as_dict()
             out[field] = esfield
             if field_type.store:
                 self.stored_fields.append(field)
@@ -82,12 +82,14 @@ class ElasticSearchResult(SearchResult):
             indexes = [self.engine.name]
         )
         
-        self.rows = search_result["hits"]["total"]
+        self.rows = search_result.total
+        doc_class = self.engine.database.document
         
         for result in search_result["hits"]["hits"]:
             _results.append(
                 Document(
-                    data = {field: result["_source"].get(field, None) for field in self.engine.stored_fields}
+                    data = {field: result["_source"].get(field, None) for field in self.engine.stored_fields},
+                    restore = True
                 )
             )
         return _results
